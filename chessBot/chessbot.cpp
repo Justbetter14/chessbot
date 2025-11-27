@@ -1,42 +1,12 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include <unordered_set>
 #include <SFML/Graphics.hpp>
 #include "chess.h"
 
 using namespace std;
 using namespace sf;
-
-vector<vector<string>> fen2board(string fen) {
-    vector<vector<string>> board(8);
-    vector<string> rows;
-
-    string temp = "";
-    for (char ch : fen) {
-        if (ch == '/') {
-            rows.push_back(temp);
-            temp = "";
-        } else {
-            temp += ch;
-        }
-    }
-    rows.push_back(temp);
-
-    for (int r = 0; r < rows.size(); r++) {
-        for (char ch : rows[r]) {
-            if (isdigit(ch)) {
-                for (int i = 0; i < ch - '0'; i++) {
-                    board[r].push_back(" ");
-                }
-            } else {
-                string piece = isupper(ch) ? "w" : "b";
-                piece += tolower(ch);
-                board[r].push_back(piece);
-            }
-        }
-    }
-    return board;
-}
 
 vector<vector<Sprite>> allPieces(int squareSize, vector<Texture>& spriteSheet) {
     vector<vector<Sprite>> pieces(2);
@@ -51,6 +21,8 @@ vector<vector<Sprite>> allPieces(int squareSize, vector<Texture>& spriteSheet) {
 }
 
 int main(int argc, char **argv) {
+    setGlobals();
+
     const int boardSize = 8;
     const float squareSize = 75.0f;
     const unsigned int boardWidth = boardSize * squareSize;
@@ -73,6 +45,21 @@ int main(int argc, char **argv) {
         spriteSheet.push_back(black);
     }
     vector<vector<Sprite>> pieces = allPieces(squareSize, spriteSheet);
+
+    Texture red;
+    if (! red.loadFromFile("../redSpot.png")){
+        cout << "failed to load" << endl;
+    }
+    Texture gray;
+    if (! gray.loadFromFile("../graySpot.png")){
+        cout << "failed to load" << endl;
+    }
+    Sprite redSpot(red);
+    Sprite graySpot(gray);
+    redSpot.setScale({squareSize/96, squareSize/96});
+    graySpot.setScale({squareSize/96, squareSize/96});
+    redSpot.setOrigin({64 / 2.0f, 64 / 2.0f});
+    graySpot.setOrigin({64 / 2.0f, 64 / 2.0f});
 
     RenderWindow window(VideoMode({boardWidth, boardHeight}), "Chess Board");
 
@@ -98,53 +85,62 @@ int main(int argc, char **argv) {
             }
         }
 
-        vector<vector<string>> board = fen2board("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR");
+        int board[64];
+        fen2arr("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR", board);
+        vector<Move> possibleMoves = generateMoves(board, 62);
+        unordered_set<int> attacking = {};
+        for (Move m : possibleMoves) {
+            attacking.insert(m.TargetSquare);
+        }
         for (int row = 0; row < boardSize; row++) {
             for (int col = 0; col < boardSize; col++) {
-                Vector2f pos = Vector2f(col * squareSize, row * squareSize);
-                if (board[row][col] == " ") {
+                Vector2f pos = Vector2f(col * squareSize + squareSize / 2.0f, row * squareSize + squareSize / 2.0f);
+                if (attacking.count(row * 8 + col) == 0) {
                     continue;
                 }
-                if (board[row][col] == "wr") {
-                    pieces[0][4].setPosition(pos);
-                    window.draw(pieces[0][4]);
-                } else if (board[row][col] == "br") {
-                    pieces[1][4].setPosition(pos);
-                    window.draw(pieces[1][4]);
-                } else if (board[row][col] == "wn") {
-                    pieces[0][3].setPosition(pos);
-                    window.draw(pieces[0][3]);
-                } else if (board[row][col] == "bn") {
-                    pieces[1][3].setPosition(pos);
-                    window.draw(pieces[1][3]);
-                } else if (board[row][col] == "wb") {
-                    pieces[0][2].setPosition(pos);
-                    window.draw(pieces[0][2]);
-                } else if (board[row][col] == "bb") {
-                    pieces[1][2].setPosition(pos);
-                    window.draw(pieces[1][2]);
-                } else if (board[row][col] == "wp") {
-                    pieces[0][5].setPosition(pos);
-                    window.draw(pieces[0][5]);
-                } else if (board[row][col] == "bp") {
-                    pieces[1][5].setPosition(pos);
-                    window.draw(pieces[1][5]);
-                } else if (board[row][col] == "wq") {
-                    pieces[0][1].setPosition(pos);
-                    window.draw(pieces[0][1]);
-                } else if (board[row][col] == "bq") {
-                    pieces[1][1].setPosition(pos);
-                    window.draw(pieces[1][1]);
-                } else if (board[row][col] == "wk") {
-                    pieces[0][0].setPosition(pos);
-                    window.draw(pieces[0][0]);
-                } else if (board[row][col] == "bk") {
-                    pieces[1][0].setPosition(pos);
-                    window.draw(pieces[1][0]);
+                if (pieceType(board[row * 8 + col]) == Piece().None) {
+                    graySpot.setPosition(pos);
+                    window.draw(graySpot);
+                } else {
+                    redSpot.setPosition(pos);
+                    window.draw(redSpot);
                 }
             }
         }
 
+        for (int row = 0; row < boardSize; row++) {
+            for (int col = 0; col < boardSize; col++) {
+                Vector2f pos = Vector2f(col * squareSize, row * squareSize);
+                if (pieceType(board[row * 8 + col]) == Piece().None) {
+                    continue;
+                }
+                if (pieceType(board[row * 8 + col]) == Piece().Rook) {
+                    int color = pieceColor(board[row * 8 + col]) == Piece().Black ? 1 : 0;
+                    pieces[color][4].setPosition(pos);
+                    window.draw(pieces[color][4]);
+                } else if (pieceType(board[row * 8 + col]) == Piece().Knight) {
+                    int color = pieceColor(board[row * 8 + col]) == Piece().Black ? 1 : 0;
+                    pieces[color][3].setPosition(pos);
+                    window.draw(pieces[color][3]);
+                } else if (pieceType(board[row * 8 + col]) == Piece().Bishop) {
+                    int color = pieceColor(board[row * 8 + col]) == Piece().Black ? 1 : 0;
+                    pieces[color][2].setPosition(pos);
+                    window.draw(pieces[color][2]);
+                } else if (pieceType(board[row * 8 + col]) == Piece().Pawn) {
+                    int color = pieceColor(board[row * 8 + col]) == Piece().Black ? 1 : 0;
+                    pieces[color][5].setPosition(pos);
+                    window.draw(pieces[color][5]);
+                } else if (pieceType(board[row * 8 + col]) == Piece().Queen) {
+                    int color = pieceColor(board[row * 8 + col]) == Piece().Black ? 1 : 0;
+                    pieces[color][1].setPosition(pos);
+                    window.draw(pieces[color][1]);
+                } else if (pieceType(board[row * 8 + col]) == Piece().King) {
+                    int color = pieceColor(board[row * 8 + col]) == Piece().Black ? 1 : 0;
+                    pieces[color][0].setPosition(pos);
+                    window.draw(pieces[color][0]);
+                }
+            }
+        }
         window.display();
     }
     return 0;
