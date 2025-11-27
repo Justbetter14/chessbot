@@ -2,6 +2,7 @@
 #include <vector>
 #include <string>
 #include <SFML/Graphics.hpp>
+#include "chess.h"
 
 using namespace std;
 using namespace sf;
