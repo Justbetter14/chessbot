@@ -29,11 +29,13 @@ int pieceColor(int num) {
 }
 
 struct Move {
-    static __readonly int StartSquare;
-    static __readonly int TargetSquare;
+    int StartSquare;
+    int TargetSquare;
+
+    Move(int startSquare, int targetSquare) : StartSquare(startSquare), TargetSquare(targetSquare) {};
 };
 
-static __readonly int dirOffsets[] = {8, -8, 1, -1, 7, -7, 9, -9};
+static __readonly int dirOffsets[] = {-8, 8, 1, -1, -7, -9, 9, 7};
 static __readonly vector<vector<int>> distFromEdge(64);
 
 void edgeDistance() {
@@ -92,12 +94,68 @@ vector<Move> findKnightMoves(int board[64], int index, int color) {
 }
 vector<Move> findBishopMoves(int board[64], int index, int color) {
     vector<Move> moves;
+    for (int dir = 4; dir < 8; dir++) {
+        for (int dist = 0; dist < distFromEdge[index][dir]; dist++) {
+            int targetSquare = index + dirOffsets[dir] * (dist + 1);
+            int targetPiece = board[targetSquare];
+
+            if (pieceColor(targetPiece) == color) {
+                break;
+            }
+
+            Move move(index, targetSquare);
+            moves.push_back(move);
+
+            if (pieceColor(targetPiece) != color && pieceType(targetPiece) != Piece().None) {
+                break;
+            }
+        }
+    }
+    return moves;
 }
 vector<Move> findRookMoves(int board[64], int index, int color) {
     vector<Move> moves;
+    for (int dir = 0; dir < 4; dir++) {
+        for (int dist = 0; dist < distFromEdge[index][dir]; dist++) {
+            int targetSquare = index + dirOffsets[dir] * (dist + 1);
+            int targetPiece = board[targetSquare];
+
+            if (pieceColor(targetPiece) == color) {
+                break;
+            }
+
+            Move move(index, targetSquare);
+            moves.push_back(move);
+
+            if (pieceColor(targetPiece) != color && pieceType(targetPiece) != Piece().None) {
+                break;
+            }
+        }
+    }
+    return moves;
 }
 vector<Move> findKingMoves(int board[64], int index, int color) {
     vector<Move> moves;
+    for (int dir = 0; dir < 8; dir++) {
+        for (int dist = 0; dist < distFromEdge[index][dir]; dist++) {
+            int targetSquare = index + dirOffsets[dir] * (dist + 1);
+            int targetPiece = board[targetSquare];
+
+            if (pieceColor(targetPiece) == color) {
+                break;
+            }
+
+            Move move(index, targetSquare);
+            moves.push_back(move);
+
+            if (pieceColor(targetPiece) != color && pieceType(targetPiece) != Piece().None) {
+                break;
+            }
+
+            break;
+        }
+    }
+    return moves;
 }
 vector<Move> findPawnMoves(int board[64], int index, int color) {
     vector<Move> moves;
