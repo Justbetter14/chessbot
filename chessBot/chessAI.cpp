@@ -189,35 +189,37 @@ bool checkLegal(Move move, int board[64], int color) {
     return true;
 }
 
-vector<Move> generateMoves(int board[64], int index) {
+vector<Move> generateMoves(int board[64]) {
     vector<Move> possibleMoves = {};
 
-    int type = pieceType(board[index]);
-    int color = pieceColor(board[index]);
+    for (int index = 0; index < 64; index++) {
+        int type = pieceType(board[index]);
+        int color = pieceColor(board[index]);
 
-    vector<Move> moves;
+        vector<Move> moves;
 
-    if (type == Piece().None) {
-        return {};
-    } else if (type == Piece().Knight) {
-        moves = findKnightMoves(board, index, color);
-    } else if (type == Piece().Bishop) {
-        moves = findBishopMoves(board, index, color);
-    } else if (type == Piece().Rook) {
-        moves = findRookMoves(board, index, color);
-    } else if (type == Piece().Queen) {
-        moves = findRookMoves(board, index, color);
-        vector<Move> moves2 = findBishopMoves(board, index, color);
-        moves.insert(moves.end(), moves2.begin(), moves2.end());
-    } else if (type == Piece().King) {
-        moves = findKingMoves(board, index, color);
-    } else {
-        moves = findPawnMoves(board, index, color);
-    }
+        if (type == Piece().None) {
+            return {};
+        } else if (type == Piece().Knight) {
+            moves = findKnightMoves(board, index, color);
+        } else if (type == Piece().Bishop) {
+            moves = findBishopMoves(board, index, color);
+        } else if (type == Piece().Rook) {
+            moves = findRookMoves(board, index, color);
+        } else if (type == Piece().Queen) {
+            moves = findRookMoves(board, index, color);
+            vector<Move> moves2 = findBishopMoves(board, index, color);
+            moves.insert(moves.end(), moves2.begin(), moves2.end());
+        } else if (type == Piece().King) {
+            moves = findKingMoves(board, index, color);
+        } else {
+            moves = findPawnMoves(board, index, color);
+        }
 
-    for (Move m : moves) {
-        if (checkLegal(m, board, color)) {
-            possibleMoves.push_back(m);
+        for (Move m : moves) {
+            if (checkLegal(m, board, color)) {
+                possibleMoves.push_back(m);
+            }
         }
     }
 
