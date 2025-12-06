@@ -63,6 +63,8 @@ int main(int argc, char **argv) {
 
     RenderWindow window(VideoMode({boardWidth, boardHeight}), "Chess Board");
 
+    int board[64];
+
     while (window.isOpen()) {
         while (auto event = window.pollEvent()) {
             if (event->is<Event::Closed>()) {
@@ -85,9 +87,8 @@ int main(int argc, char **argv) {
             }
         }
 
-        int board[64];
-        fen2arr("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR", board);
-        vector<Move> possibleMoves = generateMoves(board, 62);
+        fen2arr("rnbqkbnr/pp2pppp/8/2p5/3pq3/5N2/PPPP1PPP/RNBQKB1R", board);
+        vector<Move> possibleMoves = generateMoves(board, 61);
         unordered_set<int> attacking = {};
         for (Move m : possibleMoves) {
             attacking.insert(m.TargetSquare);
