@@ -214,63 +214,64 @@ vector<Move> findPawnMoves(int board[64], int index, int color) {
 }
 
 bool checkLegal(Move move, int board[64], int color) {
-    int newBoard[64];
-    copy(board, board + 64, newBoard);
-
     int startSquare = move.StartSquare;
     int targetSquare = move.TargetSquare;
 
-    newBoard[targetSquare] = newBoard[startSquare];
-    newBoard[startSquare] = Piece().None;
+    int temp = board[targetSquare];
+    board[targetSquare] = board[startSquare];
+    board[startSquare] = Piece().None;
 
     int kingLoc = -1;
-    vector<Move> attacking = {};
+    for (int ind = 0; ind < 64; ind++) {
+        if (pieceType(board[ind]) == Piece().King && pieceColor(board[ind]) == color) {
+            kingLoc = ind;
+            break;
+        }
+    }
+
+    if (kingLoc == -1) {
+        board[startSquare] = board[targetSquare];
+        board[targetSquare] = temp;
+        return false;
+    }
 
     for (int ind = 0; ind < 64; ind++) {
-        int type = pieceType(newBoard[ind]);
-        int colorNew = pieceColor(newBoard[ind]);
+        int type = pieceType(board[ind]);
+        int colorNew = pieceColor(board[ind]);
 
-        if (type == Piece().None) {
-            continue;
-        }
-
-        if (colorNew == color && type == Piece().King) {
-            kingLoc = ind;
-            continue;
-        }
-
-        if (colorNew == color) {
+        if (type == Piece().None || colorNew == color) {
             continue;
         }
 
         vector<Move> moves;
 
         if (type == Piece().Knight) {
-            moves = findKnightMoves(newBoard, ind, colorNew);
+            moves = findKnightMoves(board, ind, colorNew);
         } else if (type == Piece().Bishop) {
-            moves = findBishopMoves(newBoard, ind, colorNew);
+            moves = findBishopMoves(board, ind, colorNew);
         } else if (type == Piece().Rook) {
-            moves = findRookMoves(newBoard, ind, colorNew);
+            moves = findRookMoves(board, ind, colorNew);
         } else if (type == Piece().Queen) {
-            moves = findRookMoves(newBoard, ind, colorNew);
-            vector<Move> moves2 = findBishopMoves(newBoard, ind, colorNew);
+            moves = findRookMoves(board, ind, colorNew);
+            vector<Move> moves2 = findBishopMoves(board, ind, colorNew);
             moves.insert(moves.end(), moves2.begin(), moves2.end());
         } else if (type == Piece().King) {
-            moves = findKingMoves(newBoard, ind, colorNew);
+            moves = findKingMoves(board, ind, colorNew);
         } else {
-            moves = findPawnMoves(newBoard, ind, colorNew);
+            moves = findPawnMoves(board, ind, colorNew);
         }
 
-        attacking.insert(attacking.end(), moves.begin(), moves.end());
-    }
-    if (kingLoc == -1) {
-        return false;
-    }
-    for (Move m: attacking) {
-        if (m.TargetSquare == kingLoc) {
-            return false;
+        for (Move m: moves) {
+            if (m.TargetSquare == kingLoc) {
+                board[startSquare] = board[targetSquare];
+                board[targetSquare] = temp;
+                return false;
+            }
         }
     }
+
+    board[startSquare] = board[targetSquare];
+    board[targetSquare] = temp;
     return true;
 }
 
@@ -303,9 +304,9 @@ vector<Move> generateMoves(int board[64], int index) {
     }
 
     for (Move m : moves) {
-        // if (checkLegal(m, board, color)) {
+        if (checkLegal(m, board, color)) {
             possibleMoves.push_back(m);
-        // }
+        }
     }
 
     return possibleMoves;
@@ -322,32 +323,79 @@ vector<Move> generateAllMoves(int board[64], int color) {
     return possibleMoves;
 }
 
-// int main(int argc, char **argv) {
-//     setGlobals();
-//     int board[64];
-//     fen2arr("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR", board);
-//     int count = 0;
-//     for (int num : board) {
-//         if (num < 10) {
-//             count++;
-//             cout << num << "  ";
-//         } else {
-//             count++;
-//             cout << num << " ";
-//         }
-//         if ((count - 1) % 8 == 7) {
-//             cout << endl;
-//         }
-//     }
-//     vector<Move> possibleMoves = generateAllMoves(board, Piece().White);
-//     cout << "White: " << possibleMoves.size() << endl;
-//     for (Move m: possibleMoves) {
-//         cout << m.StartSquare << " to " << m.TargetSquare << endl;
-//     }
-//     possibleMoves = generateAllMoves(board, Piece().Black);
-//     cout << "Black: " << possibleMoves.size() << endl;
-//     for (Move m: possibleMoves) {
-//         cout << m.StartSquare << " to " << m.TargetSquare << endl;
-//     }
-//     return 0;
-// }
+int eval(int board[64]) {
+    // Negative Number is Black Winning
+    // Positive Number is White Winning
+
+    Piece piece;
+    unordered_map<int, int> pieceVal = {
+        {piece.Pawn, 100}, {piece.Knight, 300}, {piece.Bishop, 300},
+        {piece.Rook, 500}, {piece.Queen, 900}, {piece.King, 1000}
+    };
+
+    int total = 0;
+
+    for (int ind = 0; ind < 64; ind++) {
+        if (pieceType(board[ind]) == Piece().None) {
+            continue;
+        }
+
+        int color = pieceColor(board[ind]);
+        if (color == Piece().Black) {
+            total -= pieceVal[board[ind]];
+        } else if (color == Piece().White) {
+            total += pieceVal[board[ind]];
+        }
+    }
+
+    return total;
+}
+
+Move findBestMove(int board[64], int color) {
+    vector<Move> possibleMoves = generateAllMoves(board, color);
+    int currEval = eval(board);
+    vector<Move> best;
+    if (color == Piece().White) {
+        for (Move m: possibleMoves) {
+            int startSquare = board[m.StartSquare];
+            int targetSquare = board[m.TargetSquare];
+
+            int temp = board[targetSquare];
+            board[targetSquare] = board[startSquare];
+            board[startSquare] = Piece().None;
+
+            if (eval(board) > currEval) {
+                currEval = eval(board);
+                best.clear();
+                best.push_back(m);
+            } else if (eval(board) == currEval) {
+                best.push_back(m);
+            }
+
+            board[startSquare] = board[targetSquare];
+            board[targetSquare] = temp;
+        }
+    } else if (color == Piece().Black) {
+        for (Move m: possibleMoves) {
+            int startSquare = board[m.StartSquare];
+            int targetSquare = board[m.TargetSquare];
+
+            int temp = board[targetSquare];
+            board[targetSquare] = board[startSquare];
+            board[startSquare] = Piece().None;
+
+            if (eval(board) > currEval) {
+                currEval = eval(board);
+                best.clear();
+                best.push_back(m);
+            } else if (eval(board) == currEval) {
+                best.push_back(m);
+            }
+
+            board[startSquare] = board[targetSquare];
+            board[targetSquare] = temp;
+        }
+    }
+
+    return best[0];
+}

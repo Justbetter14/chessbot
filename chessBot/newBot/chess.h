@@ -44,4 +44,6 @@ vector<Move> findPawnMoves(int board[64], int index, int color);
 bool checkLegal(Move move, int board[64], int color);
 vector<Move> generateMoves(int board[64], int index);
 vector<Move> generateAllMoves(int board[64], int color);
+int eval(int board[64]);
+Move findBestMove(int board[64], int color);
 #endif //CHESSBOT_CHESS_H
